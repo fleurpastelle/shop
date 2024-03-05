@@ -10,6 +10,13 @@ use Illuminate\Support\Facades\Auth;
 
 class CartController extends Controller
 {
+    /**
+     * Menambahkan produk ke keranjang belanja pengguna.
+     *
+     * @param  \App\Models\Product  $product
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function add_to_cart(Product $product, Request $request)
     {
         $request->validate([
@@ -19,35 +26,39 @@ class CartController extends Controller
         $user_id = Auth::id();
         $product_id = $product->id;
         $existing_cart = Cart::where('product_id', $product_id)
-                             ->where('user_id', $user_id)
-                             ->first();
-    
-        if($existing_cart == null)
-        {
+            ->where('user_id', $user_id)
+            ->first();
+        
+        if ($existing_cart == null) {
             $request->validate([
                 'amount' => 'required|gte:1|lte:' . $product->stock
             ]);
-    
+        
             Cart::create([
                 'user_id' => $user_id,
                 'product_id' => $product_id,
                 'amount' => $request->amount
             ]);
-        }
-        else
-        {
+        } else {
             $request->validate([
                 'amount' => 'required|gte:1|lte:' . ($product->stock - $existing_cart->amount)
             ]);
-    
+        
             $existing_cart->update([
                 'amount' => $existing_cart->amount + $request->amount
             ]);
         }
-    
+        
         return Redirect::route('show_cart');
     }    
 
+    /**
+     * Mengupdate jumlah produk dalam keranjang belanja.
+     *
+     * @param  \App\Models\Cart  $cart
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function update_cart(Cart $cart, Request $request)
     {
         $request->validate([
@@ -61,11 +72,23 @@ class CartController extends Controller
         return Redirect::route('show_cart');
     }
 
+    /**
+     * Constructor untuk CartController.
+     * 
+     * Menerapkan middleware 'auth' untuk memastikan pengguna terotentikasi sebelum menggunakan fungsi-fungsi dalam controller.
+     *
+     * @return void
+     */
     public function __construct()
     {
         $this->middleware('auth');
     }
 
+    /**
+     * Menampilkan keranjang belanja pengguna.
+     *
+     * @return \Illuminate\Contracts\View\View
+     */
     public function show_cart()
     {
         $user_id = Auth::id();
@@ -73,11 +96,16 @@ class CartController extends Controller
         return view('show_cart', compact('carts'));
     }
 
+    /**
+     * Menghapus produk dari keranjang belanja.
+     *
+     * @param  \App\Models\Cart  $cart
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function delete_cart(Cart $cart)
     {
         $cart->delete();
         return Redirect::back();
     }
-
 
 }
